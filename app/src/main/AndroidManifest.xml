@@ -32,6 +32,7 @@
         <package android:name="com.tubitv" />
         <package android:name="tv.pluto.android" />
         <package android:name="com.bydeluxe.d3.android.program.starz" />
+        <package android:name="com.stremio.one" />
     </queries>
 
     <application

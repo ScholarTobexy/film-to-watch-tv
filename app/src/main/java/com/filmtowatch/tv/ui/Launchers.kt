@@ -42,6 +42,22 @@ object Launchers {
         context.packageManager.getLeanbackLaunchIntentForPackage(pkg) != null || context.packageManager.getLaunchIntentForPackage(pkg) != null
     }
 
+    private const val STREMIO = "com.stremio.one"
+
+    fun hasStremio(context: Context): Boolean = context.packageManager.getLeanbackLaunchIntentForPackage(STREMIO) != null ||
+        context.packageManager.getLaunchIntentForPackage(STREMIO) != null
+
+    /** The movie's page in Stremio (stremio:///detail/movie/tt…), or Stremio's search for other ids. */
+    fun openInStremio(context: Context, filmId: String, title: String) {
+        val uri = if (filmId.matches(Regex("tt\\d+"))) "stremio:///detail/movie/$filmId/$filmId"
+        else "stremio:///search?search=" + Uri.encode(title)
+        val attempts = listOf(
+            Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage(STREMIO),
+            context.packageManager.getLeanbackLaunchIntentForPackage(STREMIO) ?: Intent(),
+        )
+        if (!startFirst(context, attempts.filter { it.action != null || it.component != null })) toast(context, "Stremio isn't installed")
+    }
+
     fun playTrailer(context: Context, youtubeId: String?) {
         if (youtubeId == null) {
             toast(context, "No trailer available for this movie")

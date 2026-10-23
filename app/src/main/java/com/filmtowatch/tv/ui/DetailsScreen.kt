@@ -201,13 +201,18 @@ fun DetailsScreen(vm: AppViewModel, screen: Screen.Details) {
                             PosterArt(film)
                         }
                         Spacer(Modifier.height(26.dp))
-                        // With TMDB data the best way to watch comes first: "Watch on Netflix"
-                        // Prefer a service whose app is on this TV, then one we know how to open
-                        val bestOffer = remember(offers) {
-                            offers.firstOrNull { Launchers.hasProviderApp(context, it.provider) }
-                                ?: offers.firstOrNull { Launchers.knowsProvider(it.provider) }
-                                ?: offers.firstOrNull()
+                        // With TMDB data the best way to watch comes first: "Watch on Netflix" when it's in a
+                        // subscription on an app this TV has. Otherwise "Open in Stremio" instead of a rental (Rent on
+                        // Amazon asked to pay for what wasn't on Netflix); rentals lead only without Stremio.
+                        val stremio = remember { Launchers.hasStremio(context) }
+                        val bestOffer = remember(offers, stremio) {
+                            val included = offers.filter { it.kind != "Rent" && it.kind != "Buy" }
+                            included.firstOrNull { Launchers.hasProviderApp(context, it.provider) }
+                                ?: if (stremio) null else (offers.firstOrNull { Launchers.hasProviderApp(context, it.provider) }
+                                    ?: offers.firstOrNull { Launchers.knowsProvider(it.provider) }
+                                    ?: offers.firstOrNull())
                         }
+                        val inStremio = bestOffer == null && stremio
                         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                             if (bestOffer != null) {
                                 WatchButton(
@@ -215,13 +220,21 @@ fun DetailsScreen(vm: AppViewModel, screen: Screen.Details) {
                                     onClick = { Launchers.openProvider(context, bestOffer.provider, film.title) },
                                     modifier = Modifier.focusRequester(firstFocus),
                                 )
+                            } else if (inStremio) {
+                                PillButton(
+                                    "Open in Stremio",
+                                    onClick = { Launchers.openInStremio(context, film.id, film.title) },
+                                    icon = Icons.Filled.PlayArrow,
+                                    large = true,
+                                    modifier = Modifier.focusRequester(firstFocus),
+                                )
                             }
                             PillButton(
-                                if (film.trailerId != null) (if (bestOffer != null) "Trailer" else "Play Trailer") else "No Trailer",
+                                if (film.trailerId != null) (if (bestOffer != null || inStremio) "Trailer" else "Play Trailer") else "No Trailer",
                                 onClick = { Launchers.playTrailer(context, film.trailerId) },
                                 icon = Icons.Filled.PlayArrow,
                                 large = true,
-                                modifier = if (bestOffer == null) Modifier.focusRequester(firstFocus) else Modifier,
+                                modifier = if (bestOffer == null && !inStremio) Modifier.focusRequester(firstFocus) else Modifier,
                             )
                             if (screen.fromSwipe) {
                                 PillButton("Like", onClick = { vm.decideFromDetails(film.id, like = true) }, icon = Icons.Filled.Favorite, iconTint = Palette.Pink, large = true)
@@ -231,7 +244,7 @@ fun DetailsScreen(vm: AppViewModel, screen: Screen.Details) {
                             } else {
                                 PillButton("Add to Watchlist", onClick = { vm.addToWatchlist(film) }, icon = Icons.Filled.Favorite, iconTint = Palette.Pink, large = true)
                             }
-                            if (bestOffer == null) {
+                            if (bestOffer == null && !inStremio) {
                                 PillButton(
                                     "Find on TV",
                                     onClick = { Launchers.searchEverywhere(context, listOfNotNull(film.title, film.year).joinToString(" ")) },
