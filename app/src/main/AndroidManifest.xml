@@ -48,12 +48,25 @@
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="landscape"
+            android:launchMode="singleTask"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- filmtowatch://film/<imdb id>: a watchlist movie's page (Free My TV's "My List") -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="filmtowatch" android:host="film" />
+            </intent-filter>
         </activity>
+
+        <!-- The watchlist, read-only, for Free My TV (it checks who asks) -->
+        <provider
+            android:name=".data.WatchlistProvider"
+            android:authorities="com.filmtowatch.tv.watchlist"
+            android:exported="true" />
     </application>
 </manifest>

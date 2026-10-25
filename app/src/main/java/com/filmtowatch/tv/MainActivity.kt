@@ -1,7 +1,9 @@
 package com.filmtowatch.tv
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -20,13 +22,31 @@ import com.filmtowatch.tv.ui.SwipeScreen
 import com.filmtowatch.tv.ui.Palette
 
 class MainActivity : ComponentActivity() {
+    private val vm: AppViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) openLink(intent)
         setContent {
             FilmTheme {
-                App()
+                App(vm)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        openLink(intent)
+    }
+
+    /** filmtowatch://film/<imdb id> (Free My TV's "My List"): that watchlist movie's page, over Home. */
+    private fun openLink(intent: Intent?) {
+        val link = intent?.data ?: return
+        if (link.scheme != "filmtowatch" || link.host != "film") return
+        val id = link.lastPathSegment?.takeIf { it.matches(Regex("tt\\d+")) } ?: return
+        if (vm.film(id) == null) return
+        while (vm.backStack.size > 1) vm.back()
+        vm.navigate(Screen.Details(id, fromSwipe = false))
     }
 }
 
